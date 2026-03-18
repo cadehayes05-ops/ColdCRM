@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdCRM — Cold Calling Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0b;
+    --bg2: #111114;
+    --bg3: #18181c;
+    --bg4: #1e1e24;
+    --border: #2a2a32;
+    --border2: #333340;
+    --text: #f0f0f4;
+    --text2: #9090a0;
+    --text3: #5a5a6a;
+    --accent: #6c63ff;
+    --accent2: #8b84ff;
+    --accent-glow: rgba(108,99,255,0.15);
+    --green: #22d3a0;
+    --green-bg: rgba(34,211,160,0.1);
+    --yellow: #f5c542;
+    --yellow-bg: rgba(245,197,66,0.1);
+    --red: #ff5e6c;
+    --red-bg: rgba(255,94,108,0.1);
+    --blue: #38bdf8;
+    --blue-bg: rgba(56,189,248,0.1);
+    --orange: #fb923c;
+    --orange-bg: rgba(251,146,60,0.1);
+    --radius: 10px;
+    --radius2: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  html { font-size: 14px; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+  input, textarea, select { font-family: 'DM Sans', sans-serif; }
+  button { cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:translateY(0);} }
+  @keyframes slideIn { from { opacity:0; transform:translateX(-10px);} to { opacity:1; transform:translateX(0);} }
+  @keyframes scaleIn { from { opacity:0; transform:scale(0.95);} to { opacity:1; transform:scale(1);} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+  .scale-in { animation: scaleIn 0.2s ease forwards; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 220px; min-width: 220px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 0; transition: width 0.3s ease; z-index: 10; }
+  .sidebar.collapsed { width: 64px; min-width: 64px; }
+  .main { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--bg); }
+  .content { padding: 28px 32px; max-width: 1400px; }
+
+  /* Sidebar */
+  .logo { padding: 0 20px 24px; display:flex; align-items:center; gap:10px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .logo-mark { width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:#fff;flex-shrink:0; }
+  .logo-text { font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden; }
+  .nav-item { display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;border-radius:0;color:var(--text2);font-size:13.5px;font-weight:500;transition:all 0.15s;white-space:nowrap;overflow:hidden;position:relative; }
+  .nav-item:hover { background:var(--bg3);color:var(--text); }
+  .nav-item.active { background:var(--accent-glow);color:var(--accent2); }
+  .nav-item.active::before { content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:0 3px 3px 0; }
+  .nav-icon { font-size:16px;flex-shrink:0;width:20px;text-align:center; }
+  .nav-label { transition:opacity 0.2s; }
+  .sidebar.collapsed .nav-label { opacity:0; }
+  .sidebar.collapsed .logo-text { opacity:0; }
+  .sidebar-footer { margin-top:auto;padding:16px 20px;border-top:1px solid var(--border); }
+  .collapse-btn { background:none;border:none;color:var(--text3);padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all 0.15s; }
+  .collapse-btn:hover { color:var(--text);background:var(--bg3); }
+
+  /* Top bar */
+  .topbar { display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:5; }
+  .page-title { font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text); }
+  .topbar-actions { display:flex;align-items:center;gap:10px; }
+  .btn { display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;border:none;transition:all 0.15s;cursor:pointer; }
+  .btn-primary { background:var(--accent);color:#fff; }
+  .btn-primary:hover { background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 16px var(--accent-glow); }
+  .btn-ghost { background:transparent;color:var(--text2);border:1px solid var(--border2); }
+  .btn-ghost:hover { background:var(--bg3);color:var(--text); }
+  .btn-danger { background:var(--red-bg);color:var(--red);border:1px solid rgba(255,94,108,0.2); }
+  .btn-danger:hover { background:rgba(255,94,108,0.2); }
+
+  /* Search bar */
+  .search-bar { position:relative;display:flex;align-items:center; }
+  .search-bar input { background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px 8px 36px;color:var(--text);font-size:13px;width:220px;outline:none;transition:all 0.15s; }
+  .search-bar input:focus { border-color:var(--accent);width:260px;background:var(--bg4); }
+  .search-bar .search-icon { position:absolute;left:11px;color:var(--text3);font-size:14px;pointer-events:none; }
+
+  /* Stats cards */
+  .stats-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px; }
+  .stat-card { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px;position:relative;overflow:hidden;transition:all 0.2s; }
+  .stat-card:hover { border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow); }
+  .stat-card::before { content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 14px 0 60px;opacity:0.06; }
+  .stat-card.blue::before { background:var(--blue); }
+  .stat-card.green::before { background:var(--green); }
+  .stat-card.yellow::before { background:var(--yellow); }
+  .stat-card.purple::before { background:var(--accent); }
+  .stat-label { font-size:12px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px; }
+  .stat-value { font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--text);line-height:1; }
+  .stat-sub { font-size:12px;color:var(--text3);margin-top:6px; }
+  .stat-icon { position:absolute;top:20px;right:20px;font-size:20px;opacity:0.5; }
+  .stat-delta { display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;margin-top:8px; }
+  .stat-delta.up { background:var(--green-bg);color:var(--green); }
+  .stat-delta.neutral { background:var(--bg3);color:var(--text3); }
+
+  /* Cards */
+  .card { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden; }
+  .card-header { padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+  .card-title { font-size:14px;font-weight:600;color:var(--text); }
+  .card-body { padding:20px; }
+
+  /* Charts */
+  .charts-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px; }
+
+  /* Table */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%;border-collapse:collapse; }
+  thead th { padding:11px 14px;text-align:left;font-size:11.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap; }
+  tbody tr { border-bottom:1px solid var(--border);transition:background 0.1s; }
+  tbody tr:hover { background:var(--bg3); }
+  tbody td { padding:12px 14px;font-size:13px;color:var(--text2);vertical-align:middle; }
+  tbody td.primary { color:var(--text);font-weight:500; }
+  .table-actions { display:flex;gap:6px;opacity:0;transition:opacity 0.15s; }
+  tbody tr:hover .table-actions { opacity:1; }
+  .action-btn { background:none;border:none;color:var(--text3);padding:5px;border-radius:6px;font-size:13px;transition:all 0.1s; }
+  .action-btn:hover { background:var(--bg4);color:var(--text); }
+  .action-btn.red:hover { background:var(--red-bg);color:var(--red); }
+
+  /* Status badges */
+  .badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap; }
+  .badge::before { content:'';width:5px;height:5px;border-radius:50%;background:currentColor; }
+  .badge.not-called { background:var(--bg4);color:var(--text3); }
+  .badge.called { background:var(--blue-bg);color:var(--blue); }
+  .badge.interested { background:var(--green-bg);color:var(--green); }
+  .badge.not-interested { background:var(--red-bg);color:var(--red); }
+  .badge.follow-up { background:var(--yellow-bg);color:var(--yellow); }
+  .badge.closed { background:rgba(108,99,255,0.15);color:var(--accent2); }
+
+  /* Tags */
+  .tag { display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:var(--bg4);color:var(--text3);border:1px solid var(--border);margin:1px; }
+  .tag.colored { background:rgba(108,99,255,0.12);color:var(--accent2);border-color:rgba(108,99,255,0.2); }
+
+  /* Modal */
+  .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.15s ease; }
+  .modal { background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:scaleIn 0.2s ease;box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  .modal-header { padding:22px 24px 0;display:flex;align-items:center;justify-content:space-between; }
+  .modal-title { font-family:'Syne',sans-serif;font-size:17px;font-weight:700; }
+  .modal-close { background:none;border:none;color:var(--text3);font-size:20px;padding:4px;border-radius:6px;transition:all 0.1s;line-height:1; }
+  .modal-close:hover { color:var(--text);background:var(--bg3); }
+  .modal-body { padding:20px 24px 24px; }
+
+  /* Forms */
+  .form-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+  .form-group { display:flex;flex-direction:column;gap:6px; }
+  .form-group.full { grid-column:1/-1; }
+  .form-label { font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em; }
+  .form-input { background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:13.5px;outline:none;transition:all 0.15s;width:100%; }
+  .form-input:focus { border-color:var(--accent);background:var(--bg4); }
+  .form-input::placeholder { color:var(--text3); }
+  select.form-input option { background:var(--bg3); }
+  textarea.form-input { resize:vertical;min-height:80px;line-height:1.5; }
+  .form-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:6px;padding-top:16px;border-top:1px solid var(--border); }
+
+  /* Kanban */
+  .kanban { display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;align-items:flex-start; }
+  .kanban::-webkit-scrollbar { height:6px; }
+  .kanban-col { min-width:220px;width:220px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);flex-shrink:0; }
+  .kanban-col-header { padding:14px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border); }
+  .kanban-col-title { font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px; }
+  .kanban-count { background:var(--bg4);color:var(--text3);font-size:11px;padding:1px 7px;border-radius:99px;font-family:'Geist Mono',monospace; }
+  .kanban-cards { padding:10px;display:flex;flex-direction:column;gap:8px;min-height:60px; }
+  .kanban-card { background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all 0.15s; }
+  .kanban-card:hover { border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3); }
+  .kanban-card.dragging { opacity:0.5;transform:scale(0.98); }
+  .kanban-card-name { font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px; }
+  .kanban-card-sub { font-size:11.5px;color:var(--text3); }
+  .kanban-card-tags { margin-top:8px;display:flex;flex-wrap:wrap;gap:3px; }
+  .drop-zone { border:2px dashed var(--accent);background:var(--accent-glow);border-radius:var(--radius);padding:12px;text-align:center;font-size:12px;color:var(--accent2); }
+
+  /* Call log */
+  .call-log-item { display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);animation:slideIn 0.2s ease; }
+  .call-log-item:last-child { border-bottom:none; }
+  .call-dot { width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0; }
+  .call-log-content { flex:1; }
+  .call-log-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:4px; }
+  .call-log-biz { font-size:13.5px;font-weight:600;color:var(--text); }
+  .call-log-time { font-size:11px;color:var(--text3);font-family:'Geist Mono',monospace; }
+  .call-log-outcome { font-size:12px;font-weight:500; }
+  .call-log-notes { font-size:12px;color:var(--text3);margin-top:3px;line-height:1.5; }
+
+  /* Reminder */
+  .reminder-item { display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border); }
+  .reminder-item:last-child { border-bottom:none; }
+  .reminder-dot { width:8px;height:8px;border-radius:50%;background:var(--yellow);flex-shrink:0; }
+  .reminder-content { flex:1; }
+  .reminder-biz { font-size:13px;font-weight:600;color:var(--text); }
+  .reminder-date { font-size:11.5px;color:var(--text3);font-family:'Geist Mono',monospace; }
+  .reminder-overdue { color:var(--red); }
+
+  /* Inline edit */
+  .inline-edit { background:none;border:none;color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;padding:2px 4px;border-radius:4px;cursor:text;transition:all 0.1s;width:100%; }
+  .inline-edit:hover { background:var(--bg3); }
+  .inline-edit:focus { outline:none;background:var(--bg4);border:1px solid var(--accent);color:var(--text); }
+
+  /* Tabs */
+  .tabs { display:flex;gap:2px;background:var(--bg3);border-radius:var(--radius);padding:3px; }
+  .tab { padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all 0.15s;border:none;background:none; }
+  .tab.active { background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.3); }
+  .tab:hover:not(.active) { color:var(--text); }
+
+  /* Filter bar */
+  .filter-bar { display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap; }
+  .filter-chip { padding:5px 12px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all 0.15s; }
+  .filter-chip.active { background:var(--accent-glow);border-color:var(--accent);color:var(--accent2); }
+  .filter-chip:hover:not(.active) { border-color:var(--border2);color:var(--text); }
+
+  /* Quick actions */
+  .quick-actions { display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap; }
+  .quick-card { background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 18px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:10px;flex:1;min-width:160px; }
+  .quick-card:hover { border-color:var(--accent);background:var(--accent-glow);transform:translateY(-2px); }
+  .quick-card-icon { font-size:20px; }
+  .quick-card-label { font-size:13px;font-weight:600;color:var(--text); }
+  .quick-card-sub { font-size:11.5px;color:var(--text3); }
+
+  /* Empty state */
+  .empty-state { text-align:center;padding:48px 20px;color:var(--text3); }
+  .empty-icon { font-size:36px;margin-bottom:12px; }
+  .empty-title { font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px; }
+  .empty-sub { font-size:12.5px; }
+
+  /* Toast */
+  .toast-container { position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px; }
+  .toast { background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);animation:slideIn 0.2s ease;min-width:220px; }
+  .toast.success { border-left:3px solid var(--green); }
+  .toast.error { border-left:3px solid var(--red); }
+  .toast.info { border-left:3px solid var(--accent); }
+
+  /* Progress bar */
+  .progress-bar { height:4px;background:var(--border);border-radius:99px;overflow:hidden; }
+  .progress-fill { height:100%;border-radius:99px;transition:width 0.5s ease; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .sidebar { position:fixed;height:100vh;z-index:50;transform:translateX(-100%);transition:transform 0.3s ease; }
+    .sidebar.open { transform:translateX(0); }
+    .stats-grid { grid-template-columns:1fr 1fr; }
+    .charts-grid { grid-template-columns:1fr; }
+    .content { padding:16px; }
+    .topbar { padding:14px 16px; }
+    .form-grid { grid-template-columns:1fr; }
+  }
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns:1fr; }
+  }
+
+  /* Utility */
+  .flex { display:flex; }
+  .flex-col { flex-direction:column; }
+  .items-center { align-items:center; }
+  .justify-between { justify-content:space-between; }
+  .gap-2 { gap:8px; }
+  .gap-3 { gap:12px; }
+  .mb-1 { margin-bottom:4px; }
+  .mb-2 { margin-bottom:8px; }
+  .mb-3 { margin-bottom:14px; }
+  .mb-4 { margin-bottom:20px; }
+  .mb-6 { margin-bottom:28px; }
+  .text-sm { font-size:12px; }
+  .text-muted { color:var(--text3); }
+  .font-mono { font-family:'Geist Mono',monospace; }
+  .truncate { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+const _Recharts = window.Recharts || window.recharts || {};
+const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } = _Recharts;
+
+// ─── Sample Data ───────────────────────────────────────────────────────────
+const SAMPLE_LEADS = [
+  { id:'1', businessName:"Mario's Pizza", contactName:'Mario Rossi', phone:'(864) 555-0101', email:'mario@mariospizza.com', website:'', status:'interested', notes:'Really interested, needs a landing page. Call back Thursday.', tags:['restaurant','food'], dateAdded:'2026-03-10', lastContacted:'2026-03-15', reminderDate:'2026-03-20' },
+  { id:'2', businessName:'Greenville CrossFit', contactName:'Jamie Torres', phone:'(864) 555-0202', email:'jamie@gvcrossfit.com', website:'gvcrossfit.com', status:'follow-up', notes:'Has old site, wants redesign. Budget ~$800.', tags:['gym','fitness'], dateAdded:'2026-03-11', lastContacted:'2026-03-16', reminderDate:'2026-03-19' },
+  { id:'3', businessName:'Main St Barbershop', contactName:'Darius King', phone:'(864) 555-0303', email:'', website:'', status:'called', notes:'Answered, said call back next week.', tags:['barbershop','local'], dateAdded:'2026-03-12', lastContacted:'2026-03-17', reminderDate:'' },
+  { id:'4', businessName:'Petal & Bloom Florist', contactName:'Susan Park', phone:'(864) 555-0404', email:'susan@petalbloom.com', website:'petalbloom.com', status:'closed', notes:'Sold $650 website package. Starting next Monday.', tags:['florist','retail'], dateAdded:'2026-03-08', lastContacted:'2026-03-14', reminderDate:'' },
+  { id:'5', businessName:'AutoFix Garage', contactName:'Rick Sanchez', phone:'(864) 555-0505', email:'rick@autofix.com', website:'', status:'not-interested', notes:'Said they already have someone. Try again in 3 months.', tags:['automotive'], dateAdded:'2026-03-13', lastContacted:'2026-03-13', reminderDate:'' },
+  { id:'6', businessName:'South Side Diner', contactName:'Betty Lou', phone:'(864) 555-0606', email:'bettylousdiner@gmail.com', website:'', status:'not-called', notes:'', tags:['restaurant'], dateAdded:'2026-03-17', lastContacted:'', reminderDate:'2026-03-18' },
+  { id:'7', businessName:'Peak Performance Gym', contactName:'Tom Walsh', phone:'(864) 555-0707', email:'tom@peakgym.com', website:'peakgym.com', status:'interested', notes:'Wants SEO + new site. High budget.', tags:['gym'], dateAdded:'2026-03-15', lastContacted:'2026-03-16', reminderDate:'2026-03-21' },
+  { id:'8', businessName:'Golden Scissors Salon', contactName:'Lena M', phone:'(864) 555-0808', email:'lena@goldenscissors.com', website:'', status:'not-called', notes:'', tags:['salon','beauty'], dateAdded:'2026-03-17', lastContacted:'', reminderDate:'' },
+];
+
+const SAMPLE_CALLS = [
+  { id:'c1', leadId:'1', businessName:"Mario's Pizza", outcome:'interested', notes:'Spoke with owner for 12 mins. Very receptive. Needs landing page with menu + contact form.', datetime:'2026-03-15T14:23:00' },
+  { id:'c2', leadId:'2', businessName:'Greenville CrossFit', outcome:'follow-up', notes:'Left voicemail, texted follow-up. Called back — wants quote.', datetime:'2026-03-16T10:05:00' },
+  { id:'c3', leadId:'4', businessName:'Petal & Bloom Florist', outcome:'closed', notes:'Closed deal. $650 package. Deposit received via Venmo.', datetime:'2026-03-14T15:45:00' },
+  { id:'c4', leadId:'5', businessName:'AutoFix Garage', outcome:'not-interested', notes:'Said "we\'re good thanks". Very brief.', datetime:'2026-03-13T11:30:00' },
+  { id:'c5', leadId:'3', businessName:'Main St Barbershop', outcome:'called', notes:'Quick chat. Seems mildly interested. Will call back.', datetime:'2026-03-17T09:15:00' },
+  { id:'c6', leadId:'7', businessName:'Peak Performance Gym', outcome:'interested', notes:'Long call! Very interested, asked for a proposal. Sending tonight.', datetime:'2026-03-16T16:00:00' },
+];
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '—';
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '—';
+const uid = () => Math.random().toString(36).slice(2,9);
+const today = () => new Date().toISOString().split('T')[0];
+
+const STATUS_COLORS = {
+  'not-called': ['not-called','—'],
+  'called': ['called','Called'],
+  'interested': ['interested','Interested 🔥'],
+  'not-interested': ['not-interested','Not Interested'],
+  'follow-up': ['follow-up','Follow Up ⏰'],
+  'closed': ['closed','Closed ✓'],
+};
+
+const OUTCOME_COLORS = {
+  'no-answer': { color:'var(--text3)', label:'No Answer' },
+  'called': { color:'var(--blue)', label:'Called' },
+  'interested': { color:'var(--green)', label:'Interested' },
+  'not-interested': { color:'var(--red)', label:'Not Interested' },
+  'follow-up': { color:'var(--yellow)', label:'Follow Up' },
+  'voicemail': { color:'var(--text2)', label:'Voicemail' },
+  'closed': { color:'var(--accent2)', label:'Closed Deal' },
+};
+
+const KANBAN_COLS = [
+  { id:'not-called', label:'New Leads', color:'var(--text3)', icon:'🆕' },
+  { id:'called', label:'Contacted', color:'var(--blue)', icon:'📞' },
+  { id:'interested', label:'Interested', color:'var(--green)', icon:'🔥' },
+  { id:'follow-up', label:'Follow Up', color:'var(--yellow)', icon:'⏰' },
+  { id:'closed', label:'Closed', color:'var(--accent2)', icon:'✅' },
+];
+
+// ─── useLocalStorage ────────────────────────────────────────────────────────
+function useLocalStorage(key, initial) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : initial; }
+    catch { return initial; }
+  });
+  useEffect(() => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }, [key, val]);
+  return [val, setVal];
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((msg, type='info') => {
+    const id = uid();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
+  }, []);
+  return { toasts, add };
+}
+
+function ToastContainer({ toasts }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast ${t.type}`}>
+          <span>{t.type==='success'?'✓':t.type==='error'?'✕':'ℹ'}</span>
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Modal ───────────────────────────────────────────────────────────────────
+function Modal({ open, onClose, title, children }) {
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') onClose(); };
+    if (open) document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="modal fade-in">
+        <div className="modal-header">
+          <div className="modal-title">{title}</div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Lead Form ───────────────────────────────────────────────────────────────
+function LeadForm({ initial, onSave, onClose }) {
+  const empty = { businessName:'', contactName:'', phone:'', email:'', website:'', status:'not-called', notes:'', tags:'', reminderDate:'' };
+  const [form, setForm] = useState(initial ? { ...initial, tags: (initial.tags||[]).join(', ') } : empty);
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const save = () => {
+    if (!form.businessName.trim()) return;
+    const tags = form.tags.split(',').map(t=>t.trim()).filter(Boolean);
+    onSave({ ...form, tags, dateAdded: form.dateAdded || today(), lastContacted: form.lastContacted || '' });
+  };
+  return (
+    <>
+      <div className="form-grid">
+        <div className="form-group"><label className="form-label">Business Name *</label><input className="form-input" value={form.businessName} onChange={set('businessName')} placeholder="e.g. Mario's Pizza" autoFocus /></div>
+        <div className="form-group"><label className="form-label">Contact Name</label><input className="form-input" value={form.contactName} onChange={set('contactName')} placeholder="First Last" /></div>
+        <div className="form-group"><label className="form-label">Phone</label><input className="form-input" value={form.phone} onChange={set('phone')} placeholder="(xxx) xxx-xxxx" /></div>
+        <div className="form-group"><label className="form-label">Email</label><input className="form-input" value={form.email} onChange={set('email')} placeholder="email@example.com" /></div>
+        <div className="form-group"><label className="form-label">Website</label><input className="form-input" value={form.website} onChange={set('website')} placeholder="example.com" /></div>
+        <div className="form-group"><label className="form-label">Status</label>
+          <select className="form-input" value={form.status} onChange={set('status')}>
+            <option value="not-called">Not Called</option>
+            <option value="called">Called</option>
+            <option value="interested">Interested</option>
+            <option value="not-interested">Not Interested</option>
+            <option value="follow-up">Follow Up</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div className="form-group"><label className="form-label">Tags (comma separated)</label><input className="form-input" value={form.tags} onChange={set('tags')} placeholder="restaurant, local, food" /></div>
+        <div className="form-group"><label className="form-label">Reminder Date</label><input type="date" className="form-input" value={form.reminderDate} onChange={set('reminderDate')} /></div>
+        <div className="form-group full"><label className="form-label">Notes</label><textarea className="form-input" value={form.notes} onChange={set('notes')} placeholder="Any relevant details..." /></div>
+      </div>
+      <div className="form-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={save}>Save Lead</button>
+      </div>
+    </>
+  );
+}
+
+// ─── Call Log Form ────────────────────────────────────────────────────────────
+function CallForm({ leads, initial, onSave, onClose }) {
+  const [form, setForm] = useState(initial || { leadId:'', businessName:'', outcome:'called', notes:'', datetime: new Date().toISOString().slice(0,16) });
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const handleLead = e => {
+    const lead = leads.find(l => l.id === e.target.value);
+    setForm(f => ({ ...f, leadId: e.target.value, businessName: lead ? lead.businessName : '' }));
+  };
+  const save = () => {
+    if (!form.businessName.trim()) return;
+    onSave({ ...form, id: form.id || uid(), datetime: form.datetime || new Date().toISOString() });
+  };
+  return (
+    <>
+      <div className="form-grid">
+        <div className="form-group full">
+          <label className="form-label">Business</label>
+          <select className="form-input" value={form.leadId} onChange={handleLead}>
+            <option value="">— Select Lead —</option>
+            {leads.map(l => <option key={l.id} value={l.id}>{l.businessName}</option>)}
+            <option value="__new__">+ Enter manually</option>
+          </select>
+          {form.leadId === '__new__' && <input className="form-input" style={{marginTop:6}} value={form.businessName} onChange={e=>setForm(f=>({...f,businessName:e.target.value}))} placeholder="Business name" />}
+        </div>
+        <div className="form-group"><label className="form-label">Outcome</label>
+          <select className="form-input" value={form.outcome} onChange={set('outcome')}>
+            {Object.entries(OUTCOME_COLORS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </div>
+        <div className="form-group"><label className="form-label">Date & Time</label><input type="datetime-local" className="form-input" value={form.datetime} onChange={set('datetime')} /></div>
+        <div className="form-group full"><label className="form-label">Notes</label><textarea className="form-input" value={form.notes} onChange={set('notes')} placeholder="What happened on this call?" /></div>
+      </div>
+      <div className="form-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={save}>Log Call</button>
+      </div>
+    </>
+  );
+}
+
+// ─── Dashboard Page ───────────────────────────────────────────────────────────
+function DashboardPage({ leads, calls, onAddLead, onAddCall }) {
+  const todayCalls = calls.filter(c => c.datetime.startsWith(today())).length;
+  const totalLeads = leads.length;
+  const closed = leads.filter(l => l.status === 'closed').length;
+  const interested = leads.filter(l => l.status === 'interested').length;
+  const conversion = totalLeads > 0 ? ((closed / totalLeads) * 100).toFixed(1) : 0;
+  const todayReminders = leads.filter(l => l.reminderDate === today() || (l.reminderDate && l.reminderDate < today())).length;
+
+  // Chart data — last 7 days
+  const last7 = Array.from({length:7}, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6-i));
+    const ds = d.toISOString().split('T')[0];
+    return {
+      day: d.toLocaleDateString('en-US',{weekday:'short'}),
+      calls: calls.filter(c => c.datetime.startsWith(ds)).length,
+      leads: leads.filter(l => l.dateAdded === ds).length,
+    };
+  });
+
+  const statusDist = Object.entries(
+    leads.reduce((acc,l) => { acc[l.status] = (acc[l.status]||0)+1; return acc; }, {})
+  ).map(([s,v]) => ({ name: STATUS_COLORS[s]?.[1] || s, value: v }));
+
+  const PIE_COLORS = ['#6c63ff','#22d3a0','#f5c542','#ff5e6c','#38bdf8','#fb923c'];
+
+  const recentCalls = [...calls].sort((a,b) => new Date(b.datetime)-new Date(a.datetime)).slice(0,5);
+  const reminders = leads.filter(l => l.reminderDate).sort((a,b) => a.reminderDate > b.reminderDate ? 1:-1).slice(0,5);
+
+  return (
+    <div className="content fade-in">
+      {/* Quick Actions */}
+      <div className="quick-actions mb-6">
+        <div className="quick-card" onClick={onAddCall}><div className="quick-card-icon">📞</div><div><div className="quick-card-label">Log a Call</div><div className="quick-card-sub">Quick entry</div></div></div>
+        <div className="quick-card" onClick={onAddLead}><div className="quick-card-icon">➕</div><div><div className="quick-card-label">Add Lead</div><div className="quick-card-sub">New business</div></div></div>
+        <div className="quick-card" onClick={()=>{}}><div className="quick-card-icon">⏰</div><div><div className="quick-card-label">Reminders</div><div className="quick-card-sub">{todayReminders} due today</div></div></div>
+      </div>
+
+      {/* Stats */}
+      <div className="stats-grid mb-6">
+        <div className="stat-card blue fade-in">
+          <div className="stat-label">Calls Today</div>
+          <div className="stat-value">{todayCalls}</div>
+          <div className="stat-sub">{calls.length} total logged</div>
+          <span className="stat-icon">📞</span>
+        </div>
+        <div className="stat-card green fade-in" style={{animationDelay:'0.05s'}}>
+          <div className="stat-label">Total Leads</div>
+          <div className="stat-value">{totalLeads}</div>
+          <div className="stat-sub">{interested} interested right now</div>
+          <span className="stat-icon">👥</span>
+        </div>
+        <div className="stat-card yellow fade-in" style={{animationDelay:'0.1s'}}>
+          <div className="stat-label">Deals Closed</div>
+          <div className="stat-value">{closed}</div>
+          <div className="stat-sub">This pipeline</div>
+          <span className="stat-icon">🏆</span>
+        </div>
+        <div className="stat-card purple fade-in" style={{animationDelay:'0.15s'}}>
+          <div className="stat-label">Conversion Rate</div>
+          <div className="stat-value">{conversion}%</div>
+          <div className="stat-sub">{closed} closed / {totalLeads} leads</div>
+          <span className="stat-icon">📈</span>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="charts-grid mb-6">
+        <div className="card fade-in">
+          <div className="card-header"><span className="card-title">Calls & Leads — Last 7 Days</span></div>
+          <div className="card-body" style={{paddingBottom:8}}>
+            {ResponsiveContainer ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={last7} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" tick={{fill:'var(--text3)',fontSize:11}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fill:'var(--text3)',fontSize:11}} axisLine={false} tickLine={false} width={20} />
+                <Tooltip contentStyle={{background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:8,fontSize:12}} cursor={{fill:'var(--accent-glow)'}} />
+                <Bar dataKey="calls" fill="var(--accent)" radius={[4,4,0,0]} name="Calls" />
+                <Bar dataKey="leads" fill="var(--green)" radius={[4,4,0,0]} name="Leads" />
+              </BarChart>
+            </ResponsiveContainer>
+            ) : (
+              <div style={{display:'flex',gap:8,alignItems:'flex-end',height:180,padding:'0 8px'}}>
+                {last7.map((d,i) => <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,justifyContent:'flex-end'}}>
+                  <div style={{width:'100%',background:'var(--accent)',borderRadius:'4px 4px 0 0',height: Math.max(4,(d.calls/Math.max(...last7.map(x=>x.calls||1)))*120)+'px'}} />
+                  <span style={{fontSize:10,color:'var(--text3)'}}>{d.day}</span>
+                </div>)}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="card fade-in" style={{animationDelay:'0.05s'}}>
+          <div className="card-header"><span className="card-title">Lead Status Breakdown</span></div>
+          <div className="card-body" style={{display:'flex',alignItems:'center',gap:16}}>
+            {ResponsiveContainer ? (
+            <ResponsiveContainer width="50%" height={180}>
+              <PieChart>
+                <Pie data={statusDist} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={3} dataKey="value">
+                  {statusDist.map((entry,i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:8,fontSize:12}} />
+              </PieChart>
+            </ResponsiveContainer>
+            ) : (
+              <div style={{width:'50%',display:'flex',flexDirection:'column',gap:6}}>
+                {statusDist.map((s,i) => <div key={s.name} style={{height:8,background:PIE_COLORS[i%PIE_COLORS.length],borderRadius:4,width:((s.value/leads.length)*100)+'%'}} />)}
+              </div>
+            )}
+            <div style={{flex:1}}>
+              {statusDist.map((s,i) => (
+                <div key={s.name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 0'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:PIE_COLORS[i%PIE_COLORS.length],flexShrink:0}} />
+                    <span style={{fontSize:12,color:'var(--text2)'}}>{s.name}</span>
+                  </div>
+                  <span style={{fontSize:12,color:'var(--text)',fontFamily:'Geist Mono,monospace',fontWeight:500}}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Calls + Reminders */}
+      <div className="charts-grid">
+        <div className="card fade-in">
+          <div className="card-header">
+            <span className="card-title">Recent Calls</span>
+            <button className="btn btn-ghost" style={{fontSize:12,padding:'5px 12px'}} onClick={onAddCall}>+ Log Call</button>
+          </div>
+          <div className="card-body" style={{padding:'8px 20px'}}>
+            {recentCalls.length === 0 ? <div className="empty-state"><div className="empty-icon">📞</div><div className="empty-title">No calls logged yet</div><div className="empty-sub">Start logging your calls</div></div>
+            : recentCalls.map(c => (
+              <div key={c.id} className="call-log-item">
+                <div className="call-dot" style={{background: OUTCOME_COLORS[c.outcome]?.color || 'var(--text3)'}} />
+                <div className="call-log-content">
+                  <div className="call-log-top">
+                    <span className="call-log-biz">{c.businessName}</span>
+                    <span className="call-log-time">{fmtDateTime(c.datetime)}</span>
+                  </div>
+                  <div className="call-log-outcome" style={{color: OUTCOME_COLORS[c.outcome]?.color || 'var(--text3)'}}>{OUTCOME_COLORS[c.outcome]?.label}</div>
+                  {c.notes && <div className="call-log-notes truncate">{c.notes}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card fade-in" style={{animationDelay:'0.05s'}}>
+          <div className="card-header"><span className="card-title">Reminders</span><span style={{fontSize:12,color:'var(--yellow)',background:'var(--yellow-bg)',padding:'2px 8px',borderRadius:99}}>{todayReminders} today</span></div>
+          <div className="card-body" style={{padding:'8px 20px'}}>
+            {reminders.length === 0
+              ? <div className="empty-state"><div className="empty-icon">⏰</div><div className="empty-title">No reminders set</div><div className="empty-sub">Add a reminder when editing a lead</div></div>
+              : reminders.map(l => (
+                <div key={l.id} className="reminder-item">
+                  <div className="reminder-dot" style={{background: l.reminderDate < today() ? 'var(--red)' : 'var(--yellow)'}} />
+                  <div className="reminder-content">
+                    <div className="reminder-biz">{l.businessName}</div>
+                    <div className={`reminder-date ${l.reminderDate < today() ? 'reminder-overdue' : ''}`}>{l.reminderDate < today() ? '⚠ Overdue — ' : ''}{fmt(l.reminderDate)}</div>
+                  </div>
+                  <span className={`badge ${l.status}`}>{STATUS_COLORS[l.status]?.[1] || l.status}</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Leads Page ───────────────────────────────────────────────────────────────
+function LeadsPage({ leads, onAdd, onEdit, onDelete, toast }) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('');
+  const [editingNote, setEditingNote] = useState(null);
+
+  const allTags = useMemo(() => [...new Set(leads.flatMap(l => l.tags || []))].sort(), [leads]);
+
+  const filtered = useMemo(() => leads.filter(l => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || l.businessName.toLowerCase().includes(q) || (l.contactName||'').toLowerCase().includes(q) || (l.phone||'').includes(q);
+    const matchStatus = statusFilter === 'all' || l.status === statusFilter;
+    const matchTag = !tagFilter || (l.tags||[]).includes(tagFilter);
+    return matchSearch && matchStatus && matchTag;
+  }), [leads, search, statusFilter, tagFilter]);
+
+  const handleNoteBlur = (lead, val) => {
+    if (val !== lead.notes) { onEdit({ ...lead, notes: val }); toast('Note saved', 'success'); }
+    setEditingNote(null);
+  };
+
+  return (
+    <div className="content fade-in">
+      {/* Filter Bar */}
+      <div className="filter-bar mb-4">
+        <div className="search-bar">
+          <span className="search-icon">🔍</span>
+          <input placeholder="Search leads..." value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+        {['all','not-called','called','interested','not-interested','follow-up','closed'].map(s => (
+          <button key={s} className={`filter-chip ${statusFilter===s?'active':''}`} onClick={()=>setStatusFilter(s)}>
+            {s==='all'?'All':STATUS_COLORS[s]?.[1]||s}
+          </button>
+        ))}
+        {allTags.length > 0 && <>
+          <span style={{color:'var(--border2)'}}>|</span>
+          {allTags.map(t => <button key={t} className={`filter-chip ${tagFilter===t?'active':''}`} onClick={()=>setTagFilter(tagFilter===t?'':t)}>#{t}</button>)}
+        </>}
+        <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
+          <span style={{fontSize:12,color:'var(--text3)'}}>{filtered.length} leads</span>
+          <button className="btn btn-primary" onClick={onAdd}>+ Add Lead</button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="card">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Business</th>
+                <th>Contact</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Tags</th>
+                <th>Notes</th>
+                <th>Added</th>
+                <th>Last Call</th>
+                <th>Reminder</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && <tr><td colSpan={10}><div className="empty-state"><div className="empty-icon">🔍</div><div className="empty-title">No leads found</div><div className="empty-sub">Try adjusting your search or filters</div></div></td></tr>}
+              {filtered.map(l => (
+                <tr key={l.id}>
+                  <td className="primary">
+                    <div>{l.businessName}</div>
+                    {l.website && <a href={`https://${l.website}`} target="_blank" rel="noopener" style={{fontSize:11,color:'var(--accent2)',textDecoration:'none'}}>{l.website}</a>}
+                  </td>
+                  <td>{l.contactName || <span style={{color:'var(--text3)'}}>—</span>}</td>
+                  <td className="font-mono" style={{fontSize:12}}>{l.phone || <span style={{color:'var(--text3)'}}>—</span>}</td>
+                  <td><span className={`badge ${l.status}`}>{STATUS_COLORS[l.status]?.[1]||l.status}</span></td>
+                  <td>{(l.tags||[]).map(t=><span key={t} className="tag colored">#{t}</span>)}</td>
+                  <td style={{maxWidth:200}}>
+                    <input
+                      className="inline-edit"
+                      defaultValue={l.notes}
+                      placeholder="Add note..."
+                      onFocus={()=>setEditingNote(l.id)}
+                      onBlur={e=>handleNoteBlur(l, e.target.value)}
+                      onKeyDown={e=>{ if(e.key==='Enter') e.target.blur(); }}
+                    />
+                  </td>
+                  <td className="text-sm text-muted font-mono">{fmt(l.dateAdded)}</td>
+                  <td className="text-sm text-muted font-mono">{fmt(l.lastContacted)}</td>
+                  <td>
+                    {l.reminderDate && <span style={{fontSize:11,fontFamily:'Geist Mono,monospace',color: l.reminderDate<=today()?'var(--red)':'var(--yellow)'}}>{l.reminderDate<=today()?'⚠ ':''}{fmt(l.reminderDate)}</span>}
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="action-btn" title="Edit" onClick={()=>onEdit(l)}>✏️</button>
+                      <button className="action-btn red" title="Delete" onClick={()=>onDelete(l.id)}>🗑</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Calls Page ───────────────────────────────────────────────────────────────
+function CallsPage({ calls, leads, onAdd, onDelete }) {
+  const sorted = useMemo(() => [...calls].sort((a,b) => new Date(b.datetime)-new Date(a.datetime)), [calls]);
+  return (
+    <div className="content fade-in">
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+        <button className="btn btn-primary" onClick={onAdd}>+ Log Call</button>
+      </div>
+      <div className="card">
+        {sorted.length === 0
+          ? <div className="empty-state"><div className="empty-icon">📞</div><div className="empty-title">No calls logged</div><div className="empty-sub">Log your first call above</div></div>
+          : <div style={{padding:'8px 20px'}}>
+              {sorted.map(c => (
+                <div key={c.id} className="call-log-item">
+                  <div className="call-dot" style={{background: OUTCOME_COLORS[c.outcome]?.color || 'var(--text3)'}} />
+                  <div className="call-log-content">
+                    <div className="call-log-top">
+                      <span className="call-log-biz">{c.businessName}</span>
+                      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                        <span className="call-log-time">{fmtDateTime(c.datetime)}</span>
+                        <button className="action-btn red" onClick={()=>onDelete(c.id)} title="Delete">🗑</button>
+                      </div>
+                    </div>
+                    <div className="call-log-outcome" style={{color: OUTCOME_COLORS[c.outcome]?.color || 'var(--text3)'}}>{OUTCOME_COLORS[c.outcome]?.label}</div>
+                    {c.notes && <div className="call-log-notes">{c.notes}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ─── Pipeline / Kanban Page ────────────────────────────────────────────────────
+function PipelinePage({ leads, onEdit }) {
+  const [dragId, setDragId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+
+  const byStatus = useMemo(() => {
+    return KANBAN_COLS.reduce((acc, col) => {
+      acc[col.id] = leads.filter(l => l.status === col.id);
+      return acc;
+    }, {});
+  }, [leads]);
+
+  const handleDragStart = (e, id) => {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (e, colId) => {
+    e.preventDefault();
+    if (dragId) {
+      const lead = leads.find(l => l.id === dragId);
+      if (lead && lead.status !== colId) {
+        onEdit({ ...lead, status: colId });
+      }
+    }
+    setDragId(null);
+    setDragOver(null);
+  };
+
+  return (
+    <div className="content fade-in" style={{maxWidth:'none'}}>
+      <div className="kanban">
+        {KANBAN_COLS.map(col => (
+          <div key={col.id} className="kanban-col"
+            onDragOver={e=>{e.preventDefault();setDragOver(col.id);}}
+            onDragLeave={()=>setDragOver(null)}
+            onDrop={e=>handleDrop(e,col.id)}>
+            <div className="kanban-col-header">
+              <span className="kanban-col-title">
+                <span>{col.icon}</span>
+                <span style={{color:col.color}}>{col.label}</span>
+              </span>
+              <span className="kanban-count">{(byStatus[col.id]||[]).length}</span>
+            </div>
+            <div className="kanban-cards" style={{minHeight: dragOver===col.id ? 80 : 60}}>
+              {dragOver === col.id && dragId && (
+                <div className="drop-zone">Drop here</div>
+              )}
+              {(byStatus[col.id]||[]).map(lead => (
+                <div key={lead.id}
+                  className={`kanban-card ${dragId===lead.id?'dragging':''}`}
+                  draggable
+                  onDragStart={e=>handleDragStart(e,lead.id)}
+                  onDragEnd={()=>{setDragId(null);setDragOver(null);}}
+                  onClick={()=>onEdit(lead)}>
+                  <div className="kanban-card-name">{lead.businessName}</div>
+                  {lead.contactName && <div className="kanban-card-sub">{lead.contactName}</div>}
+                  {lead.phone && <div className="kanban-card-sub font-mono" style={{fontSize:11}}>{lead.phone}</div>}
+                  {lead.reminderDate && (
+                    <div style={{fontSize:11,color: lead.reminderDate <= today() ? 'var(--red)' : 'var(--yellow)',marginTop:6}}>
+                      ⏰ {fmt(lead.reminderDate)}
+                    </div>
+                  )}
+                  {(lead.tags||[]).length > 0 && (
+                    <div className="kanban-card-tags">{lead.tags.map(t=><span key={t} className="tag">#{t}</span>)}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+function App() {
+  const [leads, setLeads] = useLocalStorage('coldcrm_leads', SAMPLE_LEADS);
+  const [calls, setCalls] = useLocalStorage('coldcrm_calls', SAMPLE_CALLS);
+  const [page, setPage] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [modalOpen, setModalOpen] = useState(null); // 'lead' | 'call'
+  const [editingLead, setEditingLead] = useState(null);
+  const { toasts, add: toast } = useToast();
+
+  const handleSaveLead = (lead) => {
+    if (lead.id && leads.find(l => l.id === lead.id)) {
+      setLeads(ls => ls.map(l => l.id === lead.id ? lead : l));
+      toast('Lead updated', 'success');
+    } else {
+      setLeads(ls => [...ls, { ...lead, id: uid() }]);
+      toast('Lead added ✓', 'success');
+    }
+    setModalOpen(null);
+    setEditingLead(null);
+  };
+
+  const handleEditLead = (lead) => {
+    // If called from pipeline (drag), just update directly
+    if (lead.id && !lead._openModal) {
+      setLeads(ls => ls.map(l => l.id === lead.id ? lead : l));
+    } else {
+      setEditingLead(lead);
+      setModalOpen('lead');
+    }
+  };
+
+  const handlePipelineEdit = (lead) => {
+    setEditingLead(lead);
+    setModalOpen('lead');
+  };
+
+  const handleDeleteLead = (id) => {
+    if (window.confirm('Delete this lead?')) {
+      setLeads(ls => ls.filter(l => l.id !== id));
+      toast('Lead deleted', 'info');
+    }
+  };
+
+  const handleSaveCall = (call) => {
+    // Update lead's lastContacted and status
+    const lead = leads.find(l => l.id === call.leadId);
+    if (lead) {
+      const newStatus = call.outcome === 'closed' ? 'closed'
+        : call.outcome === 'interested' ? 'interested'
+        : call.outcome === 'not-interested' ? 'not-interested'
+        : call.outcome === 'follow-up' ? 'follow-up'
+        : call.outcome === 'called' || call.outcome === 'voicemail' ? 'called'
+        : lead.status;
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, lastContacted: today(), status: newStatus } : l));
+    }
+    setCalls(cs => [call, ...cs]);
+    setModalOpen(null);
+    toast('Call logged ✓', 'success');
+  };
+
+  const handleDeleteCall = (id) => {
+    setCalls(cs => cs.filter(c => c.id !== id));
+    toast('Call removed', 'info');
+  };
+
+  const NAV = [
+    { id:'dashboard', icon:'⚡', label:'Dashboard' },
+    { id:'leads', icon:'👥', label:'Leads' },
+    { id:'calls', icon:'📞', label:'Call Log' },
+    { id:'pipeline', icon:'📊', label:'Pipeline' },
+  ];
+
+  return (
+    <div className="app">
+      {/* Sidebar */}
+      <nav className={`sidebar ${sidebarCollapsed?'collapsed':''}`}>
+        <div className="logo">
+          <div className="logo-mark">C</div>
+          <div className="logo-text">ColdCRM</div>
+        </div>
+        {NAV.map(n => (
+          <div key={n.id} className={`nav-item ${page===n.id?'active':''}`} onClick={()=>setPage(n.id)}>
+            <span className="nav-icon">{n.icon}</span>
+            <span className="nav-label">{n.label}</span>
+          </div>
+        ))}
+        <div className="sidebar-footer">
+          <button className="collapse-btn" onClick={()=>setSidebarCollapsed(s=>!s)} title="Toggle sidebar">
+            {sidebarCollapsed ? '→' : '←'}
+          </button>
+        </div>
+      </nav>
+
+      {/* Main */}
+      <div className="main">
+        {/* Topbar */}
+        <div className="topbar">
+          <div className="page-title">
+            {NAV.find(n=>n.id===page)?.icon} {NAV.find(n=>n.id===page)?.label}
+          </div>
+          <div className="topbar-actions">
+            <button className="btn btn-ghost" onClick={()=>{setModalOpen('call');}}>📞 Log Call</button>
+            <button className="btn btn-primary" onClick={()=>{setEditingLead(null);setModalOpen('lead');}}>+ Add Lead</button>
+          </div>
+        </div>
+
+        {/* Pages */}
+        {page === 'dashboard' && <DashboardPage leads={leads} calls={calls} onAddLead={()=>{setEditingLead(null);setModalOpen('lead');}} onAddCall={()=>setModalOpen('call')} />}
+        {page === 'leads' && <LeadsPage leads={leads} onAdd={()=>{setEditingLead(null);setModalOpen('lead');}} onEdit={l=>{setEditingLead(l);setModalOpen('lead');}} onDelete={handleDeleteLead} toast={toast} />}
+        {page === 'calls' && <CallsPage calls={calls} leads={leads} onAdd={()=>setModalOpen('call')} onDelete={handleDeleteCall} />}
+        {page === 'pipeline' && <PipelinePage leads={leads} onEdit={handlePipelineEdit} />}
+      </div>
+
+      {/* Modals */}
+      <Modal open={modalOpen==='lead'} onClose={()=>{setModalOpen(null);setEditingLead(null);}} title={editingLead?.id ? `Edit — ${editingLead.businessName}` : 'Add New Lead'}>
+        <LeadForm initial={editingLead} onSave={handleSaveLead} onClose={()=>{setModalOpen(null);setEditingLead(null);}} />
+      </Modal>
+
+      <Modal open={modalOpen==='call'} onClose={()=>setModalOpen(null)} title="Log a Call">
+        <CallForm leads={leads} onSave={handleSaveCall} onClose={()=>setModalOpen(null)} />
+      </Modal>
+
+      <ToastContainer toasts={toasts} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
